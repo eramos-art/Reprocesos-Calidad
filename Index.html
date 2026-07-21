@@ -1,0 +1,845 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<title>Reporte de Reprocesos — Grupo Sole</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:#F0F4F8;min-height:100vh;padding-bottom:90px}
+.app-header{background:linear-gradient(135deg,#1a3a5c,#2563EB);color:white;padding:14px 16px;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,0.2)}
+.app-header h1{font-size:15px;font-weight:700}
+.app-header p{font-size:11px;opacity:.8;margin-top:2px}
+.progress-bar{height:4px;background:rgba(255,255,255,0.2);margin-top:10px;border-radius:2px}
+.progress-fill{height:100%;background:#34D399;border-radius:2px;transition:width .3s}
+.step-dots{display:flex;gap:6px;margin-top:8px}
+.step-dot{flex:1;height:3px;border-radius:2px;background:rgba(255,255,255,0.3)}
+.step-dot.active{background:#34D399}
+.step-dot.done{background:rgba(255,255,255,0.7)}
+.container{padding:16px}
+.card{background:white;border-radius:14px;padding:16px;margin-bottom:14px;box-shadow:0 1px 4px rgba(0,0,0,0.08)}
+.sec-label{font-size:11px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px}
+.field{margin-bottom:12px}
+.field label{display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:5px}
+.field input,.field select,.field textarea{width:100%;padding:10px 12px;border:1.5px solid #E2E8F0;border-radius:10px;font-size:14px;font-family:inherit;color:#1a2332;background:white;-webkit-appearance:none}
+.field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:#2563EB}
+.field textarea{resize:none;min-height:65px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.step-page{display:none}
+.step-page.active{display:block}
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;background:white;border-top:1px solid #E2E8F0;display:flex;gap:10px;padding:10px 16px;z-index:100}
+.btn-prev{flex:1;padding:13px;background:#F1F5F9;border:none;border-radius:12px;font-size:14px;font-weight:600;color:#475569;cursor:pointer;font-family:inherit}
+.btn-next{flex:2;padding:13px;background:linear-gradient(135deg,#1a3a5c,#2563EB);border:none;border-radius:12px;font-size:14px;font-weight:700;color:white;cursor:pointer;font-family:inherit}
+.step-title{font-size:16px;font-weight:700;color:#1a2332;margin-bottom:4px}
+.step-sub{font-size:12px;color:#64748B;margin-bottom:16px}
+.tip-box{background:#EFF6FF;border-left:3px solid #2563EB;border-radius:0 10px 10px 0;padding:10px 12px;margin-bottom:14px;font-size:12px;color:#1E40AF;line-height:1.5}
+
+/* Summary */
+.summary-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}
+.sum-card{background:white;border-radius:12px;padding:12px;text-align:center;box-shadow:0 1px 4px rgba(0,0,0,0.08)}
+.sum-card .num{font-size:22px;font-weight:800;color:#1a3a5c}
+.sum-card .num.red{color:#DC2626}
+.sum-card .num.green{color:#16A34A}
+.sum-card .lbl{font-size:10px;color:#64748B;margin-top:2px;font-weight:600}
+
+/* Serie rows */
+.serie-row{background:#F8FAFC;border:1px solid #E2E8F0;border-radius:12px;padding:10px;margin-bottom:8px}
+.serie-row.has-defect{background:#FFF5F5;border-color:#FCA5A5}
+.serie-top{display:flex;gap:8px;align-items:center;margin-bottom:0}
+.serie-top input{flex:1;padding:9px 10px;border:1.5px solid #E2E8F0;border-radius:8px;font-size:13px;font-family:inherit;font-weight:700;text-transform:uppercase}
+.serie-top input:focus{outline:none;border-color:#2563EB}
+.estado-btn{padding:7px 10px;border:1.5px solid #E2E8F0;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;background:white}
+.estado-btn.ok{background:#F0FDF4;border-color:#86EFAC;color:#16A34A}
+.estado-btn.defecto{background:#FFF5F5;border-color:#FCA5A5;color:#DC2626}
+.del-btn{background:#FEE2E2;border:none;border-radius:8px;width:32px;height:32px;color:#DC2626;font-size:16px;cursor:pointer;flex-shrink:0}
+.defect-detail{margin-top:8px;display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.defect-detail input,.defect-detail select{padding:8px 10px;border:1.5px solid #FCA5A5;border-radius:8px;font-size:12px;font-family:inherit;background:white;width:100%}
+.defect-detail input:focus,.defect-detail select:focus{outline:none;border-color:#DC2626}
+.add-btn{width:100%;padding:11px;background:#EFF6FF;border:2px dashed #93C5FD;border-radius:10px;color:#2563EB;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;margin-top:6px}
+.add-btn.green{background:#F0FDF4;border-color:#86EFAC;color:#16A34A}
+
+/* Sin serie */
+.sin-serie-block{background:#FFF7ED;border:1.5px solid #FED7AA;border-radius:12px;padding:12px;margin-bottom:8px}
+.sin-serie-block .title{font-size:12px;font-weight:700;color:#92400E;margin-bottom:8px}
+.sin-serie-row{display:flex;gap:8px;align-items:center;margin-bottom:6px}
+.sin-serie-row input,.sin-serie-row select{flex:1;padding:8px 10px;border:1.5px solid #FED7AA;border-radius:8px;font-size:12px;font-family:inherit;background:white}
+
+/* Defect manager */
+.defect-chip{display:inline-flex;align-items:center;gap:4px;background:#EFF6FF;border:1px solid #BFDBFE;border-radius:20px;padding:4px 10px;font-size:11px;color:#1E40AF;margin:3px;cursor:default}
+.defect-chip .rm{background:none;border:none;color:#93C5FD;cursor:pointer;font-size:14px;line-height:1;padding:0 2px}
+.defect-chip .rm:hover{color:#DC2626}
+
+/* Dias */
+.dia-card{background:#F8FAFC;border:1.5px solid #E2E8F0;border-radius:12px;padding:14px;margin-bottom:10px;position:relative}
+.dia-card .dia-title{font-size:13px;font-weight:700;color:#1a3a5c;margin-bottom:10px}
+.dia-card .del-dia{position:absolute;top:10px;right:10px;background:none;border:none;color:#CBD5E1;font-size:18px;cursor:pointer}
+.foto-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px}
+.foto-slot{aspect-ratio:1;background:#F1F5F9;border:2px dashed #CBD5E1;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;position:relative;overflow:hidden}
+.foto-slot img{width:100%;height:100%;object-fit:cover}
+.foto-slot .del-foto{position:absolute;top:4px;right:4px;background:#DC2626;color:white;border:none;border-radius:50%;width:22px;height:22px;font-size:12px;cursor:pointer;display:none;align-items:center;justify-content:center}
+.foto-slot.has-foto{border:2px solid #34D399}
+.foto-slot.has-foto .del-foto{display:flex}
+
+/* Modal */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9998;display:none;align-items:center;justify-content:center;padding:20px}
+.modal-overlay.open{display:flex}
+.modal-box{background:white;border-radius:16px;padding:20px;width:100%;max-width:360px}
+.modal-box h3{font-size:15px;font-weight:700;color:#1a2332;margin-bottom:12px}
+.modal-box input{width:100%;padding:11px 12px;border:1.5px solid #E2E8F0;border-radius:10px;font-size:14px;font-family:inherit;margin-bottom:12px}
+.modal-box input:focus{outline:none;border-color:#2563EB}
+</style>
+</head>
+<body>
+
+<div class="app-header">
+  <div style="background:#1a3a5c;margin:-14px -16px 10px;padding:10px 16px 6px">
+    <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAA5QAAAFvCAYAAAA1/IS7AAABCGlDQ1BJQ0MgUHJvZmlsZQAAeJxjYGA8wQAELAYMDLl5JUVB7k4KEZFRCuwPGBiBEAwSk4sLGHADoKpv1yBqL+viUYcLcKakFicD6Q9ArFIEtBxopAiQLZIOYWuA2EkQtg2IXV5SUAJkB4DYRSFBzkB2CpCtkY7ETkJiJxcUgdT3ANk2uTmlyQh3M/Ck5oUGA2kOIJZhKGYIYnBncAL5H6IkfxEDg8VXBgbmCQixpJkMDNtbGRgkbiHEVBYwMPC3MDBsO48QQ4RJQWJRIliIBYiZ0tIYGD4tZ2DgjWRgEL7AwMAVDQsIHG5TALvNnSEfCNMZchhSgSKeDHkMyQx6QJYRgwGDIYMZAKbWPz9HbOBQAAAMEElEQVR4nO3dybKrOhIAQLvj/f8v04t33EETDJIoTZC5unEMmox9VZSEPx8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACe79u7AQAjWpZlyTn++/36PmUaOdf3067ts74/ra8ALfjiBPiTG0QeMSllRBHX9xOu7atxeEIfAVr6T+8GAIwgKpj8lRVZHtwReT26rgHYElACr1Yz+DP5prca16AbJgCsCSiB12oxKTbxppfa155rG4DPR0AJvFTLybCJN621uuZc2wAIKIHX6TEJNvGmldbXmmsb4N3+6d0AgJZKJ797T37MLWtZlsUTJKkp8udABIoApBBQAq8R/duSv9dNvJlNyo2NnOvbzRKA97LkFWBHzuT4+yflWMEnveUGfgJFAM7IUAKvELkU8Ow8AePznb3Hgq/7jC/AXHwxA6+QGujdnbBG1FMyod47Z3vsVdtK+l46+T86r3Rcrs6tYbb2fD732lS7/FZ11XzfWn3PAIxEhhJ4vJaTvNZZyp4Z0au6j/bVnZ23d05qH3/HtZqsX+0xbN2eFLPsdVy3cfTxLfkMjtJ2gAgCSoBJPX15bWn/IifrKZnfGQLLqJslEW1ZixrfHmMb8fkb4doAuMtDeQA+sRO6FpPDpwaTkU/OvROQ/uS83vtnOGYJSmqM71l5NUTX1br9AJFkKAEqqDm5f/rEM7J/udmr3Lq3GaarJc8jZdNGacfV8aMFyk///AHkkqEEHi1l8jfahPXM3WWgb5Ta97eN0bKjdn13z+udBZ69fIAaZCgBXmCWnzSp1carTFdqvSk3H0bNUqaolcl82/jmPI1575je7QfIIaAEYGi9s1Kp7chRK2ioceMgd69oqdGDqIjVDpF7hAFGIaAEyBA5ERz1yZsjichY/RwFcTWWRffMCNeue7tvNPX4M9HXcY8sX059M2RZAVLZQwkwqadPOHMn6DXbMptWTxqOCFxL2tr6/ZZRBDgmoASAE7WCl9pByvdPzTo+n/N+vCUQqxEUv2XsgPkJKAEm9PSM3AxZq1m0CCxHDH5GbNPa6O0DSGUPJQCvsd2bVnNSP9qTdVv1+42MJ/BmAkqAycjEcVfpw4nOlDxIZoZrWbAIcE5ACZAhZQJsAvocMwQ8UbZ9dR0DkMIeSuDRegSAbwpCnu7NQdV3pXdbABiXgBIAOCWoBOCIJa8AHz8kTryW2c2Uulr9hEhOPTN/7mZtN0A0GUrg8fwIOj/ba0FQkC5lrEYaz6i2HJXjcw7wLwElwB8TRFqKDL48LKqP5U/vdgD0ZMkrwMrdJXgzTy5z+l67nyXvw0hjP1JbopT0qdZvcY42vjWu15GyvQBnZCiBV8jd11VSx2iT3DepOfZPel+f1BcAxiCgBNiRs5TtScveUvrRqq85459y3NFNhehMUK8H5ORkl3Pew9rXd27ZPcY3eknxU74vAD4fS16BFylZfvekiV9q/3/HjPBD90dt6dWeKyO26cjZ2K5fT3UWsEeNy+jjm7L0dfQ+AOSyPh94nVEmdKUT+Zn2eI4SCEZkmH5l3G1/7b1xM47v+vya43s3u9lqbO2fBGZiySvwOq0mayNOCkds0yhSx+bOGLYY/9bvccS4rQO1muN7d2ye+P4B3CWgBF6p9qSt9sR2FDP0I6eNNYOelmM1402TWca3Zj0zfJ4AtgSUwGt9/9Qo9+qYnstuo/o8w8Q6OjDZBj0tspqlet80OTonenxrfY6v6pyhTIAWfHkBfOICvJy9YEcTyFa/T3enz6n93Gtrzj620jZGjFFuv0YWeQOjxfVXc3yjP18RYzvb9QSw5gsMYCUygBk9oEyt76zukrbmPhgl6mmjpQSW/6rV16M2ta7vTr09b3wA9OaLDODC3mTxqRPBFn2NftJmj/fi6ic3ZtH65kWKqAf0pJS/VWtPaK06AEbgSw2Apu4GlADAODyUBwAAgCICSgAAAIoIKAEAACgioAQAAKCIgBIAAIAiAkoAAACKCCgBAAAoIqAEAACgiIASAACAIgJKAAAAAAAAAAAAAAb37d0AABjFsizL1THf7/f//u/8nbP9e0+5bTrq90h9GsmI7zlAL/ZQAkCGlKBzFsufs9dbtmc0V+MDgAwlAPzPVeZpHVzMnp3aBkpHmde9195CJhLgmgwlAFSWk+VKOXZZudeyf+0FTHeXy5aIHqerY1PHMLePJe+NTCgwK3fcAOBPSYZye85VYLAuO+fYs+NL9nXeyb7ltmPvmNy+R9WbUk7q6yXvT0m/AUYmQwkACaKWgJ4FFGcByrb+nCAlpw05595tx9pVWVH1ppSz/fvvb3fL3RM5hgA9CCgBYGPZ8XstJ5j8blwdm1L++vXW2ayjcUjN/h2196pPNerNGcfcYLKkXJlJYFYCSgAYzFEAlLrEsoezgKg0WErpX269NcfxrC0jvVcAkf7p3QAAGNFR9mtZliU6m5RaXmTgc3d5akQ7csuKqldwBxBHhhIANvb2z9Vckpj7pNHUZbQR7dou+d22paWIenuMI8CTCSgBoLPILF3UA3py942WBnt3g8Q7D+S5U29uWwStwFMJKAFgUlc/j3Fmu6T3V9ZeRvLonL1/lwROV2XVqnevnJLXj+q2tBZ4A3soASBT9D7KnPIig5TtXsqUAHV9zvb4yKCuRr1nZaS0rzRTKzsJAAAvcJadWx8TXWfu8Vd7GkvauGzknnOnvu3f7tZZWsbReTnjG9E+gJm4YwYANLcOqmTwAOZlDyUAAABFBJQAQDeykwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACe79u7AQAjWpZlyTn++/36PmUaOdf3067ts74/ra8ALfjiBPiTG0QeMSllRBHX9xOu7atxeEIfAVr6T+8GAIwgKpj8lRVZHtwReT26rgHYElACr1Yz+DP5prca16AbJgCsCSiB12oxKTbxppfa155rG4DPR0AJvFTLybCJN621uuZc2wAIKIHX6TEJNvGmldbXmmsb4N3+6d0AgJZKJ797T37MLWtZlsUTJKkp8udABIoApBBQAq8R/duSv9dNvJlNyo2NnOvbzRKA97LkFWBHzuT4+yflWMEnveUGfgJFAM7IUAKvELkU8Ow8AePznb3Hgq/7jC/AXHwxA6+QGujdnbBG1FMyod47Z3vsVdtK+l46+T86r3Rcrs6tYbb2fD732lS7/FZ11XzfWn3PAIxEhhJ4vJaTvNZZyp4Z0au6j/bVnZ23d05qH3/HtZqsX+0xbN2eFLPsdVy3cfTxLfkMjtJ2gAgCSoBJPX15bWn/IifrKZnfGQLLqJslEW1ZixrfHmMb8fkb4doAuMtDeQA+sRO6FpPDpwaTkU/OvROQ/uS83vtnOGYJSmqM71l5NUTX1br9AJFkKAEqqDm5f/rEM7J/udmr3Lq3GaarJc8jZdNGacfV8aMFyk///AHkkqEEHi1l8jfahPXM3WWgb5Ta97eN0bKjdn13z+udBZ69fIAaZCgBXmCWnzSp1carTFdqvSk3H0bNUqaolcl82/jmPI1575je7QfIIaAEYGi9s1Kp7chRK2ioceMgd69oqdGDqIjVDpF7hAFGIaAEyBA5ERz1yZsjichY/RwFcTWWRffMCNeue7tvNPX4M9HXcY8sX059M2RZAVLZQwkwqadPOHMn6DXbMptWTxqOCFxL2tr6/ZZRBDgmoASAE7WCl9pByvdPzTo+n/N+vCUQqxEUv2XsgPkJKAEm9PSM3AxZq1m0CCxHDH5GbNPa6O0DSGUPJQCvsd2bVnNSP9qTdVv1+42MJ/BmAkqAycjEcVfpw4nOlDxIZoZrWbAIcE5ACZAhZQJsAvocMwQ8UbZ9dR0DkMIeSuDRegSAbwpCnu7NQdV3pXdbABiXgBIAOCWoBOCIJa8AHz8kTryW2c2Uulr9hEhOPTN/7mZtN0A0GUrg8fwIOj/ba0FQkC5lrEYaz6i2HJXjcw7wLwElwB8TRFqKDL48LKqP5U/vdgD0ZMkrwMrdJXgzTy5z+l67nyXvw0hjP1JbopT0qdZvcY42vjWu15GyvQBnZCiBV8jd11VSx2iT3DepOfZPel+f1BcAxiCgBNiRs5TtScveUvrRqq85459y3NFNhehMUK8H5ORkl3Pew9rXd27ZPcY3eknxU74vAD4fS16BFylZfvekiV9q/3/HjPBD90dt6dWeKyO26cjZ2K5fT3UWsEeNy+jjm7L0dfQ+AOSyPh94nVEmdKUT+Zn2eI4SCEZkmH5l3G1/7b1xM47v+vya43s3u9lqbO2fBGZiySvwOq0mayNOCkds0yhSx+bOGLYY/9bvccS4rQO1muN7d2ye+P4B3CWgBF6p9qSt9sR2FDP0I6eNNYOelmM1402TWca3Zj0zfJ4AtgSUwGt9/9Qo9+qYnstuo/o8w8Q6OjDZBj0tspqlet80OTonenxrfY6v6pyhTIAWfHkBfOICvJy9YEcTyFa/T3enz6n93Gtrzj620jZGjFFuv0YWeQOjxfVXc3yjP18RYzvb9QSw5gsMYCUygBk9oEyt76zukrbmPhgl6mmjpQSW/6rV16M2ta7vTr09b3wA9OaLDODC3mTxqRPBFn2NftJmj/fi6ic3ZtH65kWKqAf0pJS/VWtPaK06AEbgSw2Apu4GlADAODyUBwAAgCICSgAAAIoIKAEAACgioAQAAKCIgBIAAIAiAkoAAACKCCgBAAAoIqAEAACgiIASAACAIgJKAAAAAAAAAAAAAAb37d0AABjFsizL1THf7/f//u/8nbP9e0+5bTrq90h9GsmI7zlAL/ZQAkCGlKBzFsufs9dbtmc0V+MDgAwlAPzPVeZpHVzMnp3aBkpHmde9195CJhLgmgwlAFSWk+VKOXZZudeyf+0FTHeXy5aIHqerY1PHMLePJe+NTCgwK3fcAOBPSYZye85VYLAuO+fYs+NL9nXeyb7ltmPvmNy+R9WbUk7q6yXvT0m/AUYmQwkACaKWgJ4FFGcByrb+nCAlpw05595tx9pVWVH1ppSz/fvvb3fL3RM5hgA9CCgBYGPZ8XstJ5j8blwdm1L++vXW2ayjcUjN/h2196pPNerNGcfcYLKkXJlJYFYCSgAYzFEAlLrEsoezgKg0WErpX269NcfxrC0jvVcAkf7p3QAAGNFR9mtZliU6m5RaXmTgc3d5akQ7csuKqldwBxBHhhIANvb2z9Vckpj7pNHUZbQR7dou+d22paWIenuMI8CTCSgBoLPILF3UA3py942WBnt3g8Q7D+S5U29uWwStwFMJKAFgUlc/j3Fmu6T3V9ZeRvLonL1/lwROV2XVqnevnJLXj+q2tBZ4A3soASBT9D7KnPIig5TtXsqUAHV9zvb4yKCuRr1nZaS0rzRTKzsJAAAvcJadWx8TXWfu8Vd7GkvauGzknnOnvu3f7tZZWsbReTnjG9E+gJm4YwYANLcOqmTwAOZlDyUAAABFBJQAQDeykwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAB08V9CMyAWxmqkwwAAAABJRU5ErkJggg==" alt="Grupo Sole" style="width:100%;max-height:70px;object-fit:contain;display:block;padding:2px 0">
+  </div>
+  <h1>📦 Reporte de Reprocesos</h1>
+  <p id="stepLabel">Paso 1 de 3 — Datos del lote</p>
+  <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:33%"></div></div>
+  <div class="step-dots">
+    <div class="step-dot active" id="dot0"></div>
+    <div class="step-dot" id="dot1"></div>
+    <div class="step-dot" id="dot2"></div>
+  </div>
+</div>
+
+<div class="container">
+
+<!-- ═══ PASO 1: DATOS DEL LOTE ═══ -->
+<div class="step-page active" id="page0">
+  <div class="step-title">Datos del lote</div>
+  <div class="step-sub">Ingresa la información general del lote a reprocesar</div>
+  <div class="card">
+    <div class="sec-label">Identificación</div>
+    <div class="field"><label>N° FILE ⚠️</label><input type="text" id="rFile" placeholder="Ej: M26-280" autocapitalize="characters" oninput="this.value=this.value.toUpperCase()"></div>
+    <div class="grid2">
+      <div class="field"><label>Fecha llegada contenedor ⚠️</label><input type="date" id="rFechaLlegada"></div>
+      <div class="field"><label>N° de Lote ⚠️</label><input type="text" id="rNumLote" placeholder="Ej: LOT-001" autocapitalize="characters" oninput="this.value=this.value.toUpperCase()"></div>
+    </div>
+    <div class="field"><label>Código de producto ⚠️</label><input type="text" id="rCodigo" placeholder="Ej: 3120TURE17COV3" autocapitalize="characters" oninput="this.value=this.value.toUpperCase()"></div>
+    <div class="field"><label>Proveedor ⚠️</label><input type="text" id="rProveedor" placeholder="Nombre del proveedor"></div>
+    <div class="grid2">
+      <div class="field"><label>Almacén de llegada ⚠️</label><input type="text" id="rAlmacen" placeholder="Ej: Argentina"></div>
+      <div class="field"><label>Cantidad total del lote ⚠️</label><input type="number" id="rCantLote" placeholder="Ej: 720" min="1"></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="sec-label">Motivo del reproceso</div>
+    <div class="field">
+      <label>Tipo de defecto que bloqueó el lote ⚠️</label>
+      <select id="rTipoDefecto">
+        <option value="">Seleccionar...</option>
+      </select>
+    </div>
+    <div class="field"><label>Descripción detallada del defecto</label><textarea id="rDescDefecto" placeholder="Ej: Despotillamiento en la base esmaltada del quemador pequeño, detectado en 2do muestreo..."></textarea></div>
+    <div class="field">
+      <label>🔗 Link de video de evidencia (opcional)</label>
+      <input type="url" id="rVideoLink" placeholder="https://drive.google.com/... o OneDrive link">
+      <div style="font-size:10px;color:#94A3B8;margin-top:4px">Sube el video a Google Drive o OneDrive y pega el enlace aquí</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ PASO 2: TRABAJO EN LÍNEA ═══ -->
+<div class="step-page" id="page1">
+  <div class="step-title">Trabajo en línea</div>
+  <div class="step-sub">Registra el avance diario del reproceso</div>
+  <div class="tip-box">💡 Si el reproceso no termina en un día, registra el avance y continúa mañana con un nuevo día.</div>
+  <div id="diasContainer"></div>
+  <button class="add-btn" onclick="addDia()">📅 + Agregar día de trabajo</button>
+</div>
+
+<!-- ═══ PASO 3: SERIES PROCESADAS ═══ -->
+<div class="step-page" id="page2">
+  <div class="step-title">Series procesadas</div>
+  <div class="step-sub">Escanea cada serie e indica el defecto y solución</div>
+
+  <div class="summary-grid">
+    <div class="sum-card"><div class="num" id="totalSeries">0</div><div class="lbl">Escaneadas</div></div>
+    <div class="sum-card"><div class="num red" id="totalDef">0</div><div class="lbl">Con defecto</div></div>
+    <div class="sum-card"><div class="num green" id="totalOK">0</div><div class="lbl">Sin defecto</div></div>
+  </div>
+
+  <div class="card">
+    <div class="sec-label">Escaneo rápido con lector de barras</div>
+    <div class="tip-box">📟 Enfoca el lector en el código de barras — la serie se agrega sola. El cursor salta al campo de defecto automáticamente.</div>
+    <div style="display:flex;gap:8px;margin-bottom:14px">
+      <input type="text" id="quickScan" placeholder="⬛ Escanear serie aquí..." autocapitalize="characters"
+        style="flex:1;padding:12px;border:2px solid #2563EB;border-radius:10px;font-size:14px;font-family:inherit"
+        onkeydown="if(event.key==='Enter'||event.key==='\n'){addSerieFromScan();}"
+        oninput="this.value=this.value.toUpperCase()">
+      <button onclick="addSerieFromScan()" style="padding:12px 16px;background:#2563EB;color:white;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">+ Agregar</button>
+    </div>
+    <div id="seriesContainer"></div>
+    <button class="add-btn" onclick="addSerieManual()" style="margin-top:4px">+ Agregar serie manual</button>
+  </div>
+
+  <!-- Productos sin número de serie -->
+  <div class="card">
+    <div class="sec-label">📦 Productos sin número de serie (cajas máster)</div>
+    <div class="tip-box" style="background:#FFF7ED;border-color:#F59E0B;color:#92400E">Para productos que vienen en cajas máster y no tienen N° de serie individual — reporta por cantidad de unidades.</div>
+    <div id="sinSerieContainer"></div>
+    <button class="add-btn green" onclick="addSinSerie()">📦 + Agregar producto sin serie</button>
+  </div>
+
+  <div class="card">
+    <div class="sec-label">Responsable del reproceso</div>
+    <div class="field"><label>Nombre del responsable ⚠️</label><input type="text" id="rResponsable" placeholder="Nombre completo"></div>
+    <div class="field"><label>Cargo</label><input type="text" id="rCargo" placeholder="Ej: Operario de Calidad"></div>
+    <div class="field"><label>Observaciones finales</label><textarea id="rObsFinales" placeholder="Observaciones generales del reproceso..."></textarea></div>
+  </div>
+
+  <button onclick="generarPDF()" style="width:100%;padding:15px;background:linear-gradient(135deg,#1a3a5c,#2563EB);color:white;border:none;border-radius:14px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;margin-top:6px">📄 Generar PDF del Reproceso</button>
+</div>
+
+</div>
+
+<!-- Bottom nav -->
+<div class="bottom-nav">
+  <button class="btn-prev" id="btnPrev" onclick="prevStep()" style="display:none">◀ Anterior</button>
+  <button class="btn-next" id="btnNext" onclick="nextStep()">Siguiente →</button>
+</div>
+
+<!-- Modal: gestionar lista de defectos -->
+<div class="modal-overlay" id="defectModal">
+  <div class="modal-box">
+    <h3>⚙️ Gestionar lista de defectos</h3>
+    <div style="margin-bottom:10px">
+      <div id="defectChips" style="min-height:40px;padding:6px;background:#F8FAFC;border-radius:10px;margin-bottom:10px"></div>
+      <input type="text" id="newDefectInput" placeholder="Escribir nuevo defecto y presionar +" style="margin-bottom:0"
+        onkeydown="if(event.key==='Enter'){addNewDefect();}">
+    </div>
+    <div style="display:flex;gap:8px">
+      <button onclick="addNewDefect()" style="flex:1;padding:11px;background:#2563EB;color:white;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">+ Agregar</button>
+      <button onclick="closeDefectModal()" style="flex:1;padding:11px;background:#F1F5F9;color:#475569;border:none;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">Listo ✓</button>
+    </div>
+  </div>
+</div>
+
+<!-- Hidden inputs -->
+<input type="file" id="hiddenFileInput" accept="image/*" capture="environment" style="display:none">
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script>
+// ── STATE ──
+let currentStep = 0;
+let dias = [];
+let series = [];
+let sinSeries = [];
+let defectosFocus = null; // idx of serie waiting for defecto focus
+
+// ── LISTA DE DEFECTOS (personalizable, guardada en localStorage) ──
+const LS_DEFECTOS_KEY = 'sole_reproceso_defectos_v1';
+let misDefectos = [];
+
+function loadDefectos(){
+  try{
+    const saved = localStorage.getItem(LS_DEFECTOS_KEY);
+    if(saved) misDefectos = JSON.parse(saved);
+  }catch(e){}
+  if(!misDefectos.length){
+    misDefectos = [
+      'Despotillamiento base esmaltada',
+      'Caja rota',
+      'Caja húmeda',
+      'Caja aplastada',
+      'Caja manchada',
+      'Deformación leve',
+      'Producto dañado',
+      'Etiqueta incorrecta',
+      'Sobreajuste zunchos',
+      'Error de embalaje',
+      'Otro'
+    ];
+    saveDefectos();
+  }
+  // Populate select de paso 1
+  populateDefectoSelect('rTipoDefecto');
+}
+
+function saveDefectos(){
+  try{ localStorage.setItem(LS_DEFECTOS_KEY, JSON.stringify(misDefectos)); }catch(e){}
+}
+
+function populateDefectoSelect(id){
+  const sel = document.getElementById(id);
+  if(!sel) return;
+  const current = sel.value;
+  sel.innerHTML = '<option value="">Seleccionar...</option>';
+  misDefectos.forEach(d=>{
+    const opt = document.createElement('option');
+    opt.value = d; opt.textContent = d;
+    if(d===current) opt.selected=true;
+    sel.appendChild(opt);
+  });
+  // Agregar opción para gestionar
+  const mgr = document.createElement('option');
+  mgr.value = '__manage__'; mgr.textContent = '⚙️ Gestionar lista...';
+  sel.appendChild(mgr);
+  sel.onchange = function(){
+    if(this.value==='__manage__'){ this.value=current||''; openDefectModal(id); }
+  };
+}
+
+function openDefectModal(sourceId){
+  document.getElementById('defectModal').classList.add('open');
+  document.getElementById('defectModal').dataset.source = sourceId||'';
+  renderDefectChips();
+}
+
+function closeDefectModal(){
+  document.getElementById('defectModal').classList.remove('open');
+  const src = document.getElementById('defectModal').dataset.source;
+  if(src) populateDefectoSelect(src);
+  // Re-render series selects
+  renderSeries();
+}
+
+function renderDefectChips(){
+  const cont = document.getElementById('defectChips');
+  cont.innerHTML = '';
+  misDefectos.forEach((d,i)=>{
+    const chip = document.createElement('span');
+    chip.className = 'defect-chip';
+    chip.innerHTML = `${d}<button class="rm" onclick="removeDefect(${i})">×</button>`;
+    cont.appendChild(chip);
+  });
+}
+
+function addNewDefect(){
+  const inp = document.getElementById('newDefectInput');
+  const val = inp.value.trim();
+  if(!val) return;
+  if(!misDefectos.includes(val)){
+    misDefectos.push(val);
+    saveDefectos();
+    renderDefectChips();
+  }
+  inp.value='';
+  inp.focus();
+}
+
+function removeDefect(idx){
+  misDefectos.splice(idx,1);
+  saveDefectos();
+  renderDefectChips();
+}
+
+// ── NAVIGATION ──
+const STEPS = [
+  {label:'Paso 1 de 3 — Datos del lote', progress:'33%'},
+  {label:'Paso 2 de 3 — Trabajo en línea', progress:'66%'},
+  {label:'Paso 3 de 3 — Series procesadas', progress:'100%'}
+];
+
+function updateNav(){
+  document.getElementById('progressFill').style.width = STEPS[currentStep].progress;
+  document.getElementById('stepLabel').textContent = STEPS[currentStep].label;
+  document.querySelectorAll('.step-dot').forEach((d,i)=>{
+    d.className='step-dot'+(i<currentStep?' done':i===currentStep?' active':'');
+  });
+  document.getElementById('btnPrev').style.display = currentStep===0?'none':'block';
+  document.getElementById('btnNext').textContent = currentStep===2?'✅ Ver resumen':'Siguiente →';
+  document.querySelectorAll('.step-page').forEach((p,i)=>p.classList.toggle('active',i===currentStep));
+  window.scrollTo({top:0,behavior:'smooth'});
+  if(currentStep===1 && dias.length===0) addDia();
+  if(currentStep===2) updateStats();
+}
+
+function nextStep(){
+  if(!validateStep()) return;
+  if(currentStep<2){ currentStep++; updateNav(); }
+}
+function prevStep(){
+  if(currentStep>0){ currentStep--; updateNav(); }
+}
+
+function validateStep(){
+  const req = {0:['rFile','rFechaLlegada','rNumLote','rCodigo','rProveedor','rAlmacen','rCantLote','rTipoDefecto'],1:[],2:['rResponsable']};
+  let ok=true;
+  (req[currentStep]||[]).forEach(id=>{
+    const el=document.getElementById(id);
+    if(!el||!el.value.trim()){el&&(el.style.borderColor='#DC2626');ok=false;}
+    else{el&&(el.style.borderColor='');}
+  });
+  if(!ok) alert('⚠️ Completa los campos obligatorios (⚠️)');
+  return ok;
+}
+
+// ── DÍAS ──
+function addDia(){
+  dias.push({fecha:'',horaInicio:'',horaFin:'',personal:'',obs:'',videoLink:'',fotos:[]});
+  renderDias();
+}
+function removeDia(i){ if(dias.length>1){dias.splice(i,1);renderDias();} }
+
+function renderDias(){
+  const cont=document.getElementById('diasContainer'); cont.innerHTML='';
+  dias.forEach((d,i)=>{
+    const el=document.createElement('div'); el.className='dia-card';
+    el.innerHTML=`
+      <div class="dia-title">📅 Día ${i+1}</div>
+      <button class="del-dia" onclick="removeDia(${i})">×</button>
+      <div class="grid2">
+        <div class="field"><label>Fecha</label><input type="date" value="${d.fecha}" onchange="dias[${i}].fecha=this.value"></div>
+        <div class="field"><label>N° Personal</label><input type="number" min="1" value="${d.personal}" placeholder="Ej: 5" onchange="dias[${i}].personal=this.value"></div>
+      </div>
+      <div class="grid2">
+        <div class="field"><label>Hora inicio</label><input type="time" value="${d.horaInicio}" onchange="dias[${i}].horaInicio=this.value"></div>
+        <div class="field"><label>Hora fin</label><input type="time" value="${d.horaFin}" onchange="dias[${i}].horaFin=this.value"></div>
+      </div>
+      <div class="field"><label>Observaciones del día</label><textarea placeholder="Avance, incidencias..." onchange="dias[${i}].obs=this.value">${d.obs}</textarea></div>
+      <div class="field"><label>🔗 Link de video del proceso (opcional)</label><input type="url" value="${d.videoLink||''}" placeholder="https://drive.google.com/..." onchange="dias[${i}].videoLink=this.value"></div>
+      <div class="sec-label" style="margin-top:4px">Fotos del proceso</div>
+      <div class="foto-grid" id="fotosDia${i}"></div>
+      <button class="add-btn green" style="margin-top:8px" onclick="addFotoDia(${i})">📷 + Foto del proceso</button>
+    `;
+    cont.appendChild(el);
+    renderFotosDia(i);
+  });
+}
+
+function renderFotosDia(di){
+  const grid=document.getElementById('fotosDia'+di); if(!grid) return;
+  grid.innerHTML='';
+  (dias[di].fotos||[]).forEach((f,fi)=>{
+    const s=document.createElement('div'); s.className='foto-slot has-foto';
+    s.innerHTML=`<img src="${f}"><button class="del-foto" onclick="delFotoDia(${di},${fi})">×</button>`;
+    grid.appendChild(s);
+  });
+}
+
+function addFotoDia(di){
+  const inp=document.getElementById('hiddenFileInput');
+  inp.onchange=e=>{
+    const file=e.target.files[0]; if(!file) return;
+    const r=new FileReader(); r.onload=ev=>compressImg(ev.target.result,data=>{
+      dias[di].fotos=dias[di].fotos||[]; dias[di].fotos.push(data); renderFotosDia(di);
+    }); r.readAsDataURL(file); inp.value='';
+  };
+  inp.click();
+}
+function delFotoDia(di,fi){ dias[di].fotos.splice(fi,1); renderFotosDia(di); }
+
+// ── SERIES CON NÚMERO ──
+function addSerieFromScan(){
+  const inp=document.getElementById('quickScan');
+  const val=inp.value.trim().toUpperCase();
+  if(!val) return;
+  if(series.find(s=>s.serie===val)){
+    inp.style.borderColor='#F59E0B';
+    setTimeout(()=>inp.style.borderColor='#2563EB',2000);
+    inp.value=''; return;
+  }
+  const idx=series.length;
+  series.push({serie:val,estado:'ok',defectos:[]});
+  inp.value='';
+  renderSeries();
+  updateStats();
+  // Foco automático al campo de estado de la serie recién agregada
+  setTimeout(()=>{
+    const btns=document.querySelectorAll('.estado-toggle');
+    if(btns[idx]) btns[idx].focus();
+    inp.focus();
+  },80);
+}
+
+function addSerieManual(){
+  series.push({serie:'',estado:'ok',defectos:[]});
+  renderSeries();
+  setTimeout(()=>{
+    const inputs=document.querySelectorAll('.serie-num-input');
+    if(inputs.length) inputs[inputs.length-1].focus();
+  },80);
+}
+
+function toggleEstado(idx){
+  series[idx].estado = series[idx].estado==='ok'?'defecto':'ok';
+  if(series[idx].estado==='defecto' && (!series[idx].defectos || !series[idx].defectos.length)){
+    series[idx].defectos=[{tipo:'',descripcion:'',solucion:'',foto:null}];
+  }
+  renderSeries(); updateStats();
+  // Focus scan input after toggle
+  setTimeout(()=>document.getElementById('quickScan').focus(),80);
+}
+
+// ── DEFECTOS MÚLTIPLES POR SERIE ──
+function addDefectoSerie(si){
+  series[si].defectos.push({tipo:'',descripcion:'',solucion:'',foto:null});
+  renderSeries();
+}
+function delDefectoSerie(si,di){
+  if(series[si].defectos.length>1) series[si].defectos.splice(di,1);
+  renderSeries();
+}
+function addFotoDefecto(si,di){
+  const inp=document.getElementById('hiddenFileInput');
+  inp.onchange=e=>{
+    const file=e.target.files[0]; if(!file) return;
+    const r=new FileReader(); r.onload=ev=>compressImg(ev.target.result,data=>{
+      series[si].defectos[di].foto=data; renderSeries();
+    }); r.readAsDataURL(file); inp.value='';
+  };
+  inp.click();
+}
+function delFotoDefecto(si,di){
+  series[si].defectos[di].foto=null; renderSeries();
+}
+
+function delSerie(idx){ series.splice(idx,1); renderSeries(); updateStats(); }
+
+function renderSeries(){
+  const cont=document.getElementById('seriesContainer'); cont.innerHTML='';
+  series.forEach((s,i)=>{
+    const isDefect=s.estado==='defecto';
+    const row=document.createElement('div');
+    row.className='serie-row'+(isDefect?' has-defect':'');
+    const defectosHTML=isDefect?(s.defectos||[]).map((d,di)=>`
+      <div style="background:white;border:1.5px solid #FCA5A5;border-radius:10px;padding:8px;margin-top:${di===0?'8':'6'}px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <span style="font-size:10px;font-weight:700;color:#DC2626;text-transform:uppercase">Defecto ${di+1}</span>
+          ${s.defectos.length>1?`<button onclick="delDefectoSerie(${i},${di})" style="background:none;border:none;color:#FCA5A5;cursor:pointer;font-size:15px">×</button>`:''}
+        </div>
+        <div class="defect-detail" style="margin-bottom:6px">
+          <select data-si="${i}" data-di="${di}" class="defecto-tipo-sel">
+            <option value="">Tipo de defecto...</option>
+            ${misDefectos.map(m=>`<option value="${m}" ${d.tipo===m?'selected':''}>${m}</option>`).join('')}
+            <option value="__manage__">⚙️ Gestionar lista...</option>
+          </select>
+          <input type="text" placeholder="Descripción detallada..." value="${d.descripcion||''}"
+            oninput="series[${i}].defectos[${di}].descripcion=this.value"
+            style="border-color:#FCA5A5;background:white">
+        </div>
+        <input type="text" placeholder="✅ Solución aplicada..." value="${d.solucion||''}"
+          oninput="series[${i}].defectos[${di}].solucion=this.value"
+          style="width:100%;padding:8px 10px;border:1.5px solid #BBF7D0;border-radius:8px;font-size:12px;font-family:inherit;background:#F0FDF4;margin-bottom:6px">
+        <div style="display:flex;align-items:center;gap:8px">
+          ${d.foto?`
+            <div style="position:relative;width:56px;height:56px;flex-shrink:0">
+              <img src="${d.foto}" style="width:100%;height:100%;object-fit:cover;border-radius:8px;border:2px solid #34D399">
+              <button onclick="delFotoDefecto(${i},${di})" style="position:absolute;top:-6px;right:-6px;background:#DC2626;color:white;border:none;border-radius:50%;width:18px;height:18px;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center">×</button>
+            </div>
+            <span style="font-size:11px;color:#16A34A;font-weight:600">✅ Foto de evidencia lista</span>
+          `:`
+            <button onclick="addFotoDefecto(${i},${di})" style="display:flex;align-items:center;gap:6px;padding:8px 12px;background:#FEF2F2;border:1.5px dashed #EF4444;border-radius:8px;color:#DC2626;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">📷 Foto del defecto ⚠️ obligatoria</button>
+          `}
+        </div>
+      </div>
+    `).join('')+`<button onclick="addDefectoSerie(${i})" style="width:100%;padding:8px;margin-top:6px;background:#FFF7ED;border:1.5px dashed #F59E0B;border-radius:8px;color:#92400E;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">➕ Otro defecto en esta misma unidad</button>`:'';
+    row.innerHTML=`
+      <div class="serie-top">
+        <input class="serie-num-input" type="text" value="${s.serie}" placeholder="N° Serie"
+          oninput="series[${i}].serie=this.value.toUpperCase();this.value=this.value.toUpperCase()" autocapitalize="characters">
+        <button class="estado-btn estado-toggle ${isDefect?'defecto':'ok'}" onclick="toggleEstado(${i})">
+          ${isDefect?'❌ Defecto':'✅ OK'}
+        </button>
+        <button class="del-btn" onclick="delSerie(${i})">×</button>
+      </div>
+      ${defectosHTML}
+    `;
+    // Handle "gestionar lista" en cada select de tipo de defecto
+    row.querySelectorAll('.defecto-tipo-sel').forEach(sel=>{
+      const si=parseInt(sel.dataset.si), di=parseInt(sel.dataset.di);
+      sel.onchange=function(){
+        if(this.value==='__manage__'){this.value=series[si].defectos[di].tipo||'';openDefectModal(null);}
+        else{series[si].defectos[di].tipo=this.value;}
+      };
+    });
+    cont.appendChild(row);
+  });
+  document.getElementById('totalSeries').textContent=series.length;
+}
+
+// ── PRODUCTOS SIN SERIE ──
+function addSinSerie(){
+  sinSeries.push({descripcion:'',cantTotal:0,cantDefecto:0,defecto:'',solucion:''});
+  renderSinSeries();
+}
+function delSinSerie(i){ sinSeries.splice(i,1); renderSinSeries(); }
+
+function renderSinSeries(){
+  const cont=document.getElementById('sinSerieContainer'); cont.innerHTML='';
+  sinSeries.forEach((s,i)=>{
+    const el=document.createElement('div'); el.className='sin-serie-block';
+    el.innerHTML=`
+      <div class="title" style="display:flex;justify-content:space-between">
+        📦 Producto sin serie #${i+1}
+        <button onclick="delSinSerie(${i})" style="background:none;border:none;color:#FCA5A5;cursor:pointer;font-size:16px">×</button>
+      </div>
+      <div class="field"><label style="font-size:11px;color:#92400E">Descripción del producto</label>
+        <input type="text" value="${s.descripcion}" placeholder="Ej: Quemador pequeño modelo X"
+          oninput="sinSeries[${i}].descripcion=this.value"
+          style="border-color:#FED7AA;background:white;padding:8px 10px;border-radius:8px;font-size:13px">
+      </div>
+      <div class="grid2">
+        <div class="field"><label style="font-size:11px;color:#92400E">Total unidades revisadas</label>
+          <input type="number" min="0" value="${s.cantTotal}" placeholder="0"
+            oninput="sinSeries[${i}].cantTotal=parseInt(this.value)||0"
+            style="border-color:#FED7AA;background:white;padding:8px 10px;border-radius:8px;font-size:13px">
+        </div>
+        <div class="field"><label style="font-size:11px;color:#92400E">Unidades con defecto</label>
+          <input type="number" min="0" value="${s.cantDefecto}" placeholder="0"
+            oninput="sinSeries[${i}].cantDefecto=parseInt(this.value)||0"
+            style="border-color:#FCA5A5;background:#FFF5F5;padding:8px 10px;border-radius:8px;font-size:13px">
+        </div>
+      </div>
+      <div class="grid2">
+        <div class="field"><label style="font-size:11px;color:#92400E">Tipo de defecto</label>
+          <select onchange="sinSeries[${i}].defecto=this.value" style="border-color:#FED7AA;background:white;padding:8px;border-radius:8px;font-size:12px">
+            <option value="">Seleccionar...</option>
+            ${misDefectos.map(d=>`<option value="${d}" ${s.defecto===d?'selected':''}>${d}</option>`).join('')}
+          </select>
+        </div>
+        <div class="field"><label style="font-size:11px;color:#92400E">Solución aplicada</label>
+          <input type="text" value="${s.solucion}" placeholder="Ej: Reempaque"
+            oninput="sinSeries[${i}].solucion=this.value"
+            style="border-color:#BBF7D0;background:#F0FDF4;padding:8px 10px;border-radius:8px;font-size:12px">
+        </div>
+      </div>
+    `;
+    cont.appendChild(el);
+  });
+}
+
+function updateStats(){
+  const total=series.length;
+  const def=series.filter(s=>s.estado==='defecto').length;
+  document.getElementById('totalSeries').textContent=total;
+  document.getElementById('totalDef').textContent=def;
+  document.getElementById('totalOK').textContent=total-def;
+}
+
+// ── COMPRESS ──
+function compressImg(dataUrl,cb,maxDim=1200,quality=0.78){
+  const img=new Image(); img.onload=()=>{
+    let w=img.width,h=img.height;
+    if(w>maxDim||h>maxDim){if(w>h){h=Math.round(h*maxDim/w);w=maxDim;}else{w=Math.round(w*maxDim/h);h=maxDim;}}
+    const c=document.createElement('canvas'); c.width=w; c.height=h;
+    c.getContext('2d').drawImage(img,0,0,w,h); cb(c.toDataURL('image/jpeg',quality));
+  }; img.src=dataUrl;
+}
+
+// ── PDF ──
+function validarFotosDefectos(){
+  for(let i=0;i<series.length;i++){
+    const s=series[i];
+    if(s.estado!=='defecto') continue;
+    for(let di=0;di<(s.defectos||[]).length;di++){
+      if(!s.defectos[di].foto){
+        alert('⚠️ Falta la foto de evidencia del defecto #'+(di+1)+' en la serie "'+(s.serie||'(sin número)')+'".\n\nCada defecto reportado necesita su foto — el proveedor la exige para el reclamo.');
+        return false;
+      }
+    }
+  }
+  return true;
+}
+
+async function generarPDF(){
+  if(!validarFotosDefectos()) return;
+  const btn=document.querySelector('button[onclick="generarPDF()"]');
+  btn.disabled=true; btn.textContent='⏳ Generando PDF...';
+  try{
+    const el=buildPDF();
+    document.body.appendChild(el);
+    const file=document.getElementById('rFile').value;
+    const lote=document.getElementById('rNumLote').value;
+    await html2pdf().set({
+      margin:[10,10,10,10],
+      filename:`Reproceso_${file}_${lote}.pdf`,
+      image:{type:'jpeg',quality:0.92},
+      html2canvas:{scale:1.8,useCORS:true,backgroundColor:'#ffffff',logging:false},
+      jsPDF:{unit:'mm',format:'a4',orientation:'portrait'},
+      pagebreak:{mode:['avoid-all','css']}
+    }).from(el).save();
+    document.body.removeChild(el);
+  }finally{ btn.disabled=false; btn.textContent='📄 Generar PDF del Reproceso'; }
+}
+
+function buildPDF(){
+  const V=id=>document.getElementById(id)?.value||'';
+  const file=V('rFile'), fechaLlegada=V('rFechaLlegada'), numLote=V('rNumLote');
+  const codigo=V('rCodigo'), proveedor=V('rProveedor'), almacen=V('rAlmacen');
+  const cantLote=V('rCantLote'), tipoDefecto=V('rTipoDefecto'), descDefecto=V('rDescDefecto');
+  const videoLink=V('rVideoLink'), responsable=V('rResponsable'), cargo=V('rCargo'), obsFinales=V('rObsFinales');
+  const totalDef=series.filter(s=>s.estado==='defecto').length;
+  const totalOK=series.filter(s=>s.estado==='ok').length;
+  const pct=series.length>0?((totalDef/series.length)*100).toFixed(2)+'%':'—';
+  const now=new Date();
+  const fechaGen=now.toLocaleDateString('es-PE',{day:'2-digit',month:'2-digit',year:'numeric'})+', '+now.toLocaleTimeString('es-PE',{hour:'2-digit',minute:'2-digit'});
+
+  // Series HTML — cada defecto de la unidad en su propia fila con foto de evidencia
+  let seriesHTML=series.map((s,i)=>{
+    const bg=s.estado==='defecto'?'#FFF5F5':'#F0FDF4';
+    const est=s.estado==='defecto'?'<span style="color:#DC2626;font-weight:700">❌ Defecto</span>':'<span style="color:#16A34A;font-weight:700">✅ OK</span>';
+    const defectos=s.estado==='defecto'?(s.defectos||[]):[];
+    const nRows=Math.max(defectos.length,1);
+    let rows='';
+    if(!defectos.length){
+      rows=`<tr style="background:${bg};page-break-inside:avoid">
+        <td style="padding:4px 6px;border:1px solid #E2E8F0;text-align:center;font-size:9pt">${i+1}</td>
+        <td style="padding:4px 6px;border:1px solid #E2E8F0;font-family:monospace;font-weight:700;font-size:10pt">${s.serie}</td>
+        <td style="padding:4px 6px;border:1px solid #E2E8F0;text-align:center">${est}</td>
+        <td style="padding:4px 6px;border:1px solid #E2E8F0;font-size:9pt">—</td>
+        <td style="padding:4px 6px;border:1px solid #E2E8F0;text-align:center">—</td>
+      </tr>`;
+    } else {
+      rows=defectos.map((d,di)=>`<tr style="background:${bg};page-break-inside:avoid">
+        ${di===0?`<td rowspan="${nRows}" style="padding:4px 6px;border:1px solid #E2E8F0;text-align:center;font-size:9pt">${i+1}</td>
+        <td rowspan="${nRows}" style="padding:4px 6px;border:1px solid #E2E8F0;font-family:monospace;font-weight:700;font-size:10pt">${s.serie}</td>
+        <td rowspan="${nRows}" style="padding:4px 6px;border:1px solid #E2E8F0;text-align:center">${est}</td>`:''}
+        <td style="padding:4px 6px;border:1px solid #E2E8F0;font-size:9pt">${(d.tipo||'—')}${d.descripcion?' — '+d.descripcion:''}<br><span style="color:#16A34A;font-size:8pt">✅ ${d.solucion||'—'}</span></td>
+        <td style="padding:3px;border:1px solid #E2E8F0;text-align:center">${d.foto?`<img src="${d.foto}" style="width:60px;height:60px;object-fit:cover;border-radius:4px;border:1px solid #E2E8F0">`:'—'}</td>
+      </tr>`).join('');
+    }
+    return rows;
+  }).join('');
+
+  // Sin serie HTML
+  let sinSerieHTML='';
+  if(sinSeries.length){
+    sinSerieHTML=`<div style="margin-bottom:12px;page-break-inside:avoid">
+      <div style="font-size:10pt;font-weight:700;color:#1a3a5c;border-bottom:2px solid #1a3a5c;padding-bottom:4px;margin-bottom:8px">6 &nbsp; PRODUCTOS SIN SERIE / PRODUCTS WITHOUT SERIAL NUMBER</div>
+      <table style="width:100%;border-collapse:collapse">
+        <thead><tr style="background:#92400E;color:white">
+          <th style="padding:6px 8px">Descripción</th>
+          <th style="padding:6px 8px;text-align:center">Total Uds.</th>
+          <th style="padding:6px 8px;text-align:center">Con Defecto</th>
+          <th style="padding:6px 8px">Tipo Defecto</th>
+          <th style="padding:6px 8px">Solución</th>
+        </tr></thead><tbody>
+        ${sinSeries.map(s=>`<tr style="page-break-inside:avoid">
+          <td style="padding:5px 8px;border:1px solid #E2E8F0">${s.descripcion||'—'}</td>
+          <td style="padding:5px 8px;border:1px solid #E2E8F0;text-align:center;font-weight:700">${s.cantTotal}</td>
+          <td style="padding:5px 8px;border:1px solid #E2E8F0;text-align:center;color:#DC2626;font-weight:700">${s.cantDefecto}</td>
+          <td style="padding:5px 8px;border:1px solid #E2E8F0;font-size:9pt">${s.defecto||'—'}</td>
+          <td style="padding:5px 8px;border:1px solid #E2E8F0;font-size:9pt">${s.solucion||'—'}</td>
+        </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>`;
+  }
+
+  // Dias HTML
+  const diasHTML=dias.map((d,i)=>{
+    const fotosH=(d.fotos||[]).map(f=>`<img src="${f}" style="width:180px;height:130px;object-fit:cover;border-radius:4px;border:1px solid #E2E8F0;margin:4px">`).join('');
+    return `<div style="margin-bottom:10px;border:1px solid #E2E8F0;border-radius:6px;padding:10px;page-break-inside:avoid">
+      <div style="font-weight:700;color:#1a3a5c;margin-bottom:8px">📅 Día ${i+1} — ${d.fecha||'Sin fecha'}</div>
+      <table style="width:100%;border-collapse:collapse;margin-bottom:6px">
+        <tr>
+          <td style="padding:4px 8px;background:#F8FAFC;border:1px solid #E2E8F0;font-weight:600;width:25%">N° Personal</td>
+          <td style="padding:4px 8px;border:1px solid #E2E8F0">${d.personal||'—'}</td>
+          <td style="padding:4px 8px;background:#F8FAFC;border:1px solid #E2E8F0;font-weight:600;width:25%">Hora inicio</td>
+          <td style="padding:4px 8px;border:1px solid #E2E8F0">${d.horaInicio||'—'}</td>
+        </tr>
+        <tr>
+          <td style="padding:4px 8px;background:#F8FAFC;border:1px solid #E2E8F0;font-weight:600">Hora fin</td>
+          <td style="padding:4px 8px;border:1px solid #E2E8F0">${d.horaFin||'—'}</td>
+          <td style="padding:4px 8px;background:#F8FAFC;border:1px solid #E2E8F0;font-weight:600">Obs.</td>
+          <td style="padding:4px 8px;border:1px solid #E2E8F0;font-size:9pt">${d.obs||'—'}</td>
+        </tr>
+        ${d.videoLink?`<tr><td style="padding:4px 8px;background:#F8FAFC;border:1px solid #E2E8F0;font-weight:600">🔗 Video</td><td colspan="3" style="padding:4px 8px;border:1px solid #E2E8F0;font-size:9pt"><a href="${d.videoLink}">${d.videoLink}</a></td></tr>`:''}
+      </table>
+      ${fotosH?`<div style="display:flex;flex-wrap:wrap">${fotosH}</div>`:''}
+    </div>`;
+  }).join('');
+
+  const el=document.createElement('div');
+  el.style.cssText='position:fixed;left:-9999px;top:0;width:780px;font-family:"Segoe UI",Arial,sans-serif;background:white;font-size:10pt;color:#1a2332';
+  el.innerHTML=`
+  <div style="display:flex;align-items:stretch;border:2px solid #1a3a5c;margin-bottom:0">
+    <div style="background:#1a3a5c;padding:10px 16px;min-width:180px;display:flex;align-items:center;justify-content:center">
+      <img src="data:image/png;base64,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" alt="Grupo Sole" style="max-width:100%;max-height:60px;object-fit:contain">
+    </div>
+    <div style="flex:1;padding:12px 16px">
+      <div style="font-size:15pt;font-weight:800;color:#1a2332">REPORTE DE REPROCESOS</div>
+      <div style="font-size:9pt;color:#64748B;font-style:italic">Lot Reprocessing Report</div>
+      <div style="margin-top:8px;font-size:10pt"><b>FILE:</b> ${file} &nbsp;&nbsp; <b>FECHA:</b> ${fechaLlegada} &nbsp;&nbsp; <b>LOTE:</b> ${numLote}</div>
+    </div>
+  </div>
+  <div style="background:#1a3a5c;color:white;padding:5px 16px;display:flex;justify-content:space-between;font-size:8pt;margin-bottom:12px">
+    <span>GERENCIA DE INNOVACIÓN Y CALIDAD</span>
+    <span>DOCUMENTO CONTROLADO · LOT REPROCESSING REPORT</span>
+  </div>
+
+  <div style="margin-bottom:10px;page-break-inside:avoid">
+    <div style="font-size:10pt;font-weight:700;color:#1a3a5c;border-bottom:2px solid #1a3a5c;padding-bottom:3px;margin-bottom:6px">1 &nbsp; DATOS DEL LOTE</div>
+    <table style="width:100%;border-collapse:collapse">
+      <tr><td style="padding:4px 8px;background:#F8FAFC;border:1px solid #E2E8F0;font-weight:600;width:20%">FILE</td><td style="padding:4px 8px;border:1px solid #E2E8F0">${file}</td><td style="padding:4px 8px;background:#F8FAFC;border:1px solid #E2E8F0;font-weight:600;width:20%">N° Lote</td><td style="padding:4px 8px;border:1px solid #E2E8F0">${numLote}</td></tr>
+      <tr><td style="padding:4px 8px;background:#F8FAFC;border:1px solid #E2E8F0;font-weight:600">Código</td><td style="padding:4px 8px;border:1px solid #E2E8F0">${codigo}</td><td style="padding:4px 8px;background:#F8FAFC;border:1px solid #E2E8F0;font-weight:600">Proveedor</td><td style="padding:4px 8px;border:1px solid #E2E8F0">${proveedor}</td></tr>
+      <tr><td style="padding:4px 8px;background:#F8FAFC;border:1px solid #E2E8F0;font-weight:600">Almacén</td><td style="padding:4px 8px;border:1px solid #E2E8F0">${almacen}</td><td style="padding:4px 8px;background:#F8FAFC;border:1px solid #E2E8F0;font-weight:600">Cant. lote</td><td style="padding:4px 8px;border:1px solid #E2E8F0">${cantLote} uds.</td></tr>
+      <tr><td style="padding:4px 8px;background:#F8FAFC;border:1px solid #E2E8F0;font-weight:600">Fecha llegada</td><td colspan="3" style="padding:4px 8px;border:1px solid #E2E8F0">${fechaLlegada}</td></tr>
+    </table>
+  </div>
+
+  <div style="margin-bottom:10px;page-break-inside:avoid">
+    <div style="font-size:10pt;font-weight:700;color:#1a3a5c;border-bottom:2px solid #1a3a5c;padding-bottom:3px;margin-bottom:6px">2 &nbsp; MOTIVO DEL REPROCESO</div>
+    <table style="width:100%;border-collapse:collapse">
+      <tr><td style="padding:4px 8px;background:#FFF5F5;border:1px solid #FCA5A5;font-weight:700;color:#DC2626;width:30%">Tipo de defecto</td><td style="padding:4px 8px;border:1px solid #E2E8F0;font-weight:600">${tipoDefecto}</td></tr>
+      ${descDefecto?`<tr><td style="padding:4px 8px;background:#F8FAFC;border:1px solid #E2E8F0;font-weight:600">Descripción</td><td style="padding:4px 8px;border:1px solid #E2E8F0;font-size:9pt">${descDefecto}</td></tr>`:''}
+      ${videoLink?`<tr><td style="padding:4px 8px;background:#F8FAFC;border:1px solid #E2E8F0;font-weight:600">🔗 Video evidencia</td><td style="padding:4px 8px;border:1px solid #E2E8F0"><a href="${videoLink}" style="color:#2563EB">${videoLink}</a></td></tr>`:''}
+    </table>
+  </div>
+
+  <div style="margin-bottom:10px;page-break-inside:avoid">
+    <div style="font-size:10pt;font-weight:700;color:#1a3a5c;border-bottom:2px solid #1a3a5c;padding-bottom:3px;margin-bottom:6px">3 &nbsp; RESUMEN DEL REPROCESO</div>
+    <table style="width:100%;border-collapse:collapse">
+      <tr style="background:#1a3a5c;color:white;text-align:center"><th style="padding:6px">Total Series</th><th style="padding:6px">Con Defecto</th><th style="padding:6px">Sin Defecto</th><th style="padding:6px">% Defectuosas</th></tr>
+      <tr style="text-align:center;font-size:14pt;font-weight:800">
+        <td style="padding:8px;border:1px solid #E2E8F0">${series.length}</td>
+        <td style="padding:8px;border:1px solid #E2E8F0;color:#DC2626">${totalDef}</td>
+        <td style="padding:8px;border:1px solid #E2E8F0;color:#16A34A">${totalOK}</td>
+        <td style="padding:8px;border:1px solid #E2E8F0;color:#DC2626">${pct}</td>
+      </tr>
+    </table>
+  </div>
+
+  <div style="margin-bottom:10px">
+    <div style="font-size:10pt;font-weight:700;color:#1a3a5c;border-bottom:2px solid #1a3a5c;padding-bottom:3px;margin-bottom:6px">4 &nbsp; TRABAJO EN LÍNEA</div>
+    ${diasHTML}
+  </div>
+
+  <div style="margin-bottom:10px">
+    <div style="font-size:10pt;font-weight:700;color:#1a3a5c;border-bottom:2px solid #1a3a5c;padding-bottom:3px;margin-bottom:6px">5 &nbsp; DETALLE DE SERIES</div>
+    <table style="width:100%;border-collapse:collapse">
+      <thead><tr style="background:#1a3a5c;color:white">
+        <th style="padding:5px;width:30px;text-align:center">#</th>
+        <th style="padding:5px;width:90px">N° Serie</th>
+        <th style="padding:5px;width:60px;text-align:center">Estado</th>
+        <th style="padding:5px">Defecto / Descripción / Solución</th>
+        <th style="padding:5px;width:70px;text-align:center">Foto</th>
+      </tr></thead>
+      <tbody>${seriesHTML}</tbody>
+    </table>
+  </div>
+
+  ${sinSerieHTML}
+
+  ${obsFinales?`<div style="margin-bottom:10px;page-break-inside:avoid">
+    <div style="font-size:10pt;font-weight:700;color:#1a3a5c;border-bottom:2px solid #1a3a5c;padding-bottom:3px;margin-bottom:6px">7 &nbsp; OBSERVACIONES FINALES</div>
+    <div style="padding:8px;border:1px solid #E2E8F0;border-radius:4px;background:#F8FAFC">${obsFinales}</div>
+  </div>`:''}
+
+  <div style="margin-bottom:10px;page-break-inside:avoid">
+    <div style="font-size:10pt;font-weight:700;color:#1a3a5c;border-bottom:2px solid #1a3a5c;padding-bottom:3px;margin-bottom:6px">8 &nbsp; RESPONSABLE</div>
+    <table style="width:100%;border-collapse:collapse">
+      <tr><td style="padding:4px 8px;background:#F8FAFC;border:1px solid #E2E8F0;font-weight:600;width:25%">Nombre</td><td style="padding:4px 8px;border:1px solid #E2E8F0">${responsable}</td><td style="padding:4px 8px;background:#F8FAFC;border:1px solid #E2E8F0;font-weight:600;width:20%">Cargo</td><td style="padding:4px 8px;border:1px solid #E2E8F0">${cargo||'—'}</td></tr>
+      <tr><td style="padding:4px 8px;background:#F8FAFC;border:1px solid #E2E8F0;font-weight:600">Firma</td><td colspan="3" style="padding:28px 8px;border:1px solid #E2E8F0"></td></tr>
+    </table>
+  </div>
+
+  <div style="border-top:1px solid #E2E8F0;padding-top:6px;display:flex;justify-content:space-between;font-size:8pt;color:#94A3B8">
+    <span>Grupo Sole · Rinnai Corporation · Gerencia de Innovación y Calidad</span>
+    <span>Generado: ${fechaGen}</span>
+  </div>`;
+  return el;
+}
+
+// ── INIT ──
+loadDefectos();
+updateNav();
+</script>
+</body>
+</html>
